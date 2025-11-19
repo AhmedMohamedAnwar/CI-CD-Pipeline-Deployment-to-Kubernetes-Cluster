@@ -1,0 +1,21 @@
+pipline{
+  agent any
+  stages {
+    stage ('Checkout Github'){
+        steps{
+                credentialsId: 'github',url: 'https://github.com/AhmedMohamedAnwar/CI-CD-Pipeline-Deployment-to-Kubernetes-Cluster'
+        }
+    }
+    stage ('Testing'){
+        when{
+            anyof{
+                branch 'test'
+                branch 'main'
+            }
+        }
+        steps{  
+                echo "Testing"
+        }
+    }
+  }
+}
