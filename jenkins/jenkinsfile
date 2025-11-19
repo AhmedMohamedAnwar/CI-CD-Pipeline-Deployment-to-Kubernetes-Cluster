@@ -4,7 +4,7 @@ pipeline{
     stage ('Checkout Github'){
         steps {
             git branch: 'main',
-                credentialsId: 'github',
+                credentialsId: 'Github',
                 url: 'https://github.com/AhmedMohamedAnwar/CI-CD-Pipeline-Deployment-to-Kubernetes-Cluster'
         }
     }
