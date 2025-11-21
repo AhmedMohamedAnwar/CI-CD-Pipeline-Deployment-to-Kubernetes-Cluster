@@ -4,9 +4,7 @@ pipeline{
   stages {
     stage ('Checkout Main'){
         when{
-            {
                 branch 'main'
-            }
         }        
         steps {
             git branch: 'main',
@@ -17,9 +15,7 @@ pipeline{
 // Stage checkout from test branch 
     stage ('Checkout test'){
         when{
-            {
                 branch 'test'
-            }
         }           
         steps {
             git branch: 'test',
