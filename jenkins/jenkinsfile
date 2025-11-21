@@ -1,20 +1,34 @@
 pipeline{
   agent any
+// Stage checkout from main branch 
   stages {
-    stage ('Checkout Github'){
+    stage ('Checkout Main'){
+        when{
+            {
+                branch 'main'
+            }
+        }        
         steps {
             git branch: 'main',
                 credentialsId: 'Github',
                 url: 'https://github.com/AhmedMohamedAnwar/CI-CD-Pipeline-Deployment-to-Kubernetes-Cluster'
         }
     }
-    stage ('Testing'){
+// Stage checkout from test branch 
+    stage ('Checkout test'){
         when{
-            anyOf{
+            {
                 branch 'test'
-                branch 'main'
             }
+        }           
+        steps {
+            git branch: 'test',
+                credentialsId: 'Github',
+                url: 'https://github.com/AhmedMohamedAnwar/CI-CD-Pipeline-Deployment-to-Kubernetes-Cluster'
         }
+    }
+// Stage testing for app  
+    stage ('Testing'){
         steps{  
                 echo "Testing"
         }
