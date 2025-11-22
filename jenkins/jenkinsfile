@@ -23,10 +23,16 @@ pipeline{
                 url: 'https://github.com/AhmedMohamedAnwar/CI-CD-Pipeline-Deployment-to-Kubernetes-Cluster'
         }
     }
-// Stage testing for app  
-    stage ('Testing'){
+// Stage Scanning docker image   
+    stage ('Trivy scanner'){
+        agent{
+            docker {
+                image 'aquasec/trivy:latest'
+                args '-v $WORKSPACE:/workspace'
+            }            
+        }
         steps{  
-                echo "Testing"
+            sh 'trivy fs /workspace --exit-code 1 || true'
         }
     }
   }
