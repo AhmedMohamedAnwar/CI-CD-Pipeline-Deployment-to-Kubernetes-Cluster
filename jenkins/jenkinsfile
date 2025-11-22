@@ -23,11 +23,42 @@ pipeline{
                 url: 'https://github.com/AhmedMohamedAnwar/CI-CD-Pipeline-Deployment-to-Kubernetes-Cluster'
         }
     }
-// Stage testing for app  
-    stage ('Testing'){
-        steps{  
-                echo "Testing"
+
+// Stage Scanning docker image   
+
+stage('Trivy Scanner') {
+    agent {
+        kubernetes {
+            yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: trivy
+    image: aquasec/trivy:latest
+    command:
+    - cat
+    tty: true
+    volumeMounts:
+    - name: jenkins-home
+      mountPath: /workspace
+  volumes:
+  - name: jenkins-home
+    persistentVolumeClaim:
+      claimName: claim-jenkins-pv
+            """
         }
     }
+    steps {
+        container('trivy') {
+            sh 'trivy fs ${WORKSPACE} --exit-code 1 || true'
+        }
+    }
+}
+
+
+
+
+
   }
 }
