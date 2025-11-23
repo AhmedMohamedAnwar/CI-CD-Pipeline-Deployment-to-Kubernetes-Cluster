@@ -51,7 +51,14 @@ spec:
     }
     steps {
         container('trivy') {
-            sh 'trivy fs ${WORKSPACE} --exit-code 1 || true'
+            // sh 'trivy fs ${WORKSPACE} --exit-code 1 || true'
+        sh '''
+          # Scan filesystem (node_modules, packages...)
+          trivy fs ${WORKSPACE} --exit-code 1 || true
+
+          # Scan Dockerfiles + Kubernetes YAMLs
+          trivy config ${WORKSPACE} --exit-code 1 || true
+        '''
         }
     }
 }
