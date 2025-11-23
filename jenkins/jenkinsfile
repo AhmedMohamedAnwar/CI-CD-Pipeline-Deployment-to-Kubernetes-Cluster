@@ -51,6 +51,7 @@ spec:
     }
     steps {
         container('trivy') {
+<<<<<<< HEAD
             // sh 'trivy fs ${WORKSPACE} --exit-code 1 || true'
         sh '''
           # Scan filesystem (node_modules, packages...)
@@ -62,5 +63,16 @@ spec:
         }
     }
 }
+=======
+            sh 'trivy fs ${WORKSPACE} --exit-code 1 || true'
+        }
+    }
+}
+
+
+
+
+
+>>>>>>> b0de7bf50c7397f947902553b05e2fd3c4111631
   }
 }
