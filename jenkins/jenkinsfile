@@ -23,9 +23,7 @@ pipeline{
                 url: 'https://github.com/AhmedMohamedAnwar/CI-CD-Pipeline-Deployment-to-Kubernetes-Cluster'
         }
     }
-
 // Stage Scanning docker image   
-
 stage('Trivy Scanner') {
     agent {
         kubernetes {
@@ -51,7 +49,6 @@ spec:
     }
     steps {
         container('trivy') {
-            // sh 'trivy fs ${WORKSPACE} --exit-code 1 || true'
         sh '''
           # Scan filesystem (node_modules, packages...)
           trivy fs ${WORKSPACE} --exit-code 1 || true
@@ -62,5 +59,28 @@ spec:
         }
     }
 }
+// Testing APP   
+stage('Test app') {
+  steps {
+    echo "Test app"
+  }
+}
+// Build Docker Image 
+stage('Build Image') {
+  // when {
+  //     branch 'main'
+  // }          
+  steps {
+      docker build -t ahmedmanwar/cicd-app:latest ${WORKSPACE}
+  }
+}
+// Push  Docker Image to Dockerhub 
+stage('Push To Dockerhub') {
+  when {
+      branch 'main'
+  }   
+  steps {
+      echo "pushing to docker hub"
+  }
 }
 }
