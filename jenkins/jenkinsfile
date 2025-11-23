@@ -70,20 +70,42 @@ spec:
             }
         }
 
-        // Build Docker Image 
-        stage('Build Image') {
-            steps {
-                sh "docker build -t ahmedmanwar/cicd-app:latest ${WORKSPACE}"
+        // Build Docker Image and push to Docker hub
+        stage('Build Image & Push') {
+            agent {
+                kubernetes {
+                    yaml """
+        apiVersion: v1
+        kind: Pod
+        spec:
+          containers:
+          - name: docker
+            image: docker:24.0.5
+            command:
+            - cat
+            tty: true
+            volumeMounts:
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
+          volumes:
+          - name: docker-sock
+            hostPath:
+              path: /var/run/docker.sock
+        """
+                }
             }
-        }
-
-        // Push Docker Image to Dockerhub 
-        stage('Push To Dockerhub') {
-            when {
-                branch 'main'
-            }   
             steps {
-                echo "pushing to docker hub"
+                container('docker') {
+                    withCredentials([usernamePassword(credentialsId: 'Dockerhub', 
+                                                      usernameVariable: 'DOCKER_USER', 
+                                                      passwordVariable: 'DOCKER_PASS')]) {
+                        sh """
+                            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                            docker build -t ahmedmanwar/cicd-app:latest ${WORKSPACE}
+                            docker push ahmedmanwar/cicd-app:latest
+                        """
+                    }
+                }
             }
         }
     } // end of stages
