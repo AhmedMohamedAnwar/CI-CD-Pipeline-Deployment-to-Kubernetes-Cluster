@@ -71,7 +71,7 @@ stage('Build Image') {
   //     branch 'main'
   // }          
   steps {
-      docker build -t ahmedmanwar/cicd-app:latest ${WORKSPACE}
+      sh "docker build -t ahmedmanwar/cicd-app:latest ${WORKSPACE}"
   }
 }
 // Push  Docker Image to Dockerhub 
