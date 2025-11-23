@@ -1,33 +1,36 @@
-pipeline{
-  agent any
-// Stage checkout from main branch 
-  stages {
-    stage ('Checkout Main'){
-        when{
+pipeline {
+    agent any
+
+    stages {
+        // Stage checkout from main branch 
+        stage('Checkout Main') {
+            when {
                 branch 'main'
-        }        
-        steps {
-            git branch: 'main',
-                credentialsId: 'Github',
-                url: 'https://github.com/AhmedMohamedAnwar/CI-CD-Pipeline-Deployment-to-Kubernetes-Cluster'
+            }        
+            steps {
+                git branch: 'main',
+                    credentialsId: 'Github',
+                    url: 'https://github.com/AhmedMohamedAnwar/CI-CD-Pipeline-Deployment-to-Kubernetes-Cluster'
+            }
         }
-    }
-// Stage checkout from test branch 
-    stage ('Checkout test'){
-        when{
+
+        // Stage checkout from test branch 
+        stage('Checkout test') {
+            when {
                 branch 'test'
-        }           
-        steps {
-            git branch: 'test',
-                credentialsId: 'Github',
-                url: 'https://github.com/AhmedMohamedAnwar/CI-CD-Pipeline-Deployment-to-Kubernetes-Cluster'
+            }           
+            steps {
+                git branch: 'test',
+                    credentialsId: 'Github',
+                    url: 'https://github.com/AhmedMohamedAnwar/CI-CD-Pipeline-Deployment-to-Kubernetes-Cluster'
+            }
         }
-    }
-// Stage Scanning docker image   
-stage('Trivy Scanner') {
-    agent {
-        kubernetes {
-            yaml """
+
+        // Stage Scanning docker image   
+        stage('Trivy Scanner') {
+            agent {
+                kubernetes {
+                    yaml """
 apiVersion: v1
 kind: Pod
 spec:
@@ -44,43 +47,44 @@ spec:
   - name: jenkins-home
     persistentVolumeClaim:
       claimName: claim-jenkins-pv
-            """
-        }
-    }
-    steps {
-        container('trivy') {
-        sh '''
-          # Scan filesystem (node_modules, packages...)
-          trivy fs ${WORKSPACE} --exit-code 1 || true
+                    """
+                }
+            }
+            steps {
+                container('trivy') {
+                    sh '''
+                      # Scan filesystem (node_modules, packages...)
+                      trivy fs ${WORKSPACE} --exit-code 1 || true
 
-          # Scan Dockerfiles + Kubernetes YAMLs
-          trivy config ${WORKSPACE} --exit-code 1 || true
-        '''
+                      # Scan Dockerfiles + Kubernetes YAMLs
+                      trivy config ${WORKSPACE} --exit-code 1 || true
+                    '''
+                }
+            }
         }
-    }
-}
-// Testing APP   
-stage('Test app') {
-  steps {
-    echo "Test app"
-  }
-}
-// Build Docker Image 
-stage('Build Image') {
-  // when {
-  //     branch 'main'
-  // }          
-  steps {
-      sh"docker build -t ahmedmanwar/cicd-app:latest ${WORKSPACE}"
-  }
-}
-// Push  Docker Image to Dockerhub 
-stage('Push To Dockerhub') {
-  when {
-      branch 'main'
-  }   
-  steps {
-      echo "pushing to docker hub"
-  }
-}
-}
+
+        // Testing APP   
+        stage('Test app') {
+            steps {
+                echo "Test app"
+            }
+        }
+
+        // Build Docker Image 
+        stage('Build Image') {
+            steps {
+                sh "docker build -t ahmedmanwar/cicd-app:latest ${WORKSPACE}"
+            }
+        }
+
+        // Push Docker Image to Dockerhub 
+        stage('Push To Dockerhub') {
+            when {
+                branch 'main'
+            }   
+            steps {
+                echo "pushing to docker hub"
+            }
+        }
+    } // end of stages
+} // end of pipeline
