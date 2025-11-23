@@ -84,6 +84,8 @@ spec:
             command:
             - cat
             tty: true
+            securityContext:
+              runAsUser: 0  # Run as root
             volumeMounts:
             - name: docker-sock
               mountPath: /var/run/docker.sock
@@ -91,6 +93,7 @@ spec:
           - name: docker-sock
             hostPath:
               path: /var/run/docker.sock
+              type: Socket
         """
                 }
             }
@@ -100,7 +103,10 @@ spec:
                                                       usernameVariable: 'DOCKER_USER', 
                                                       passwordVariable: 'DOCKER_PASS')]) {
                         sh """
-                            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                            # Verify Docker socket is accessible
+                            ls -la /var/run/docker.sock
+                            
+                            echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
                             docker build -t ahmedmanwar/cicd-app:latest ${WORKSPACE}
                             docker push ahmedmanwar/cicd-app:latest
                         """
@@ -108,5 +114,5 @@ spec:
                 }
             }
         }
-    } // end of stages
-} // end of pipeline
+    }                 // end of stages
+}                    // end of pipeline
