@@ -71,64 +71,42 @@ spec:
         }
 
         // Build Docker Image and push to Docker hub
-stage('Build Image & Push') {
-  agent {
-    kubernetes {
-      yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-
-  # Docker Daemon (DIND)
-  - name: dind
-    image: docker:24.0.5-dind
-    securityContext:
-      privileged: true
-    env:
-    - name: DOCKER_TLS_CERTDIR
-      value: ""        # Disable TLS
-    command:
-    - dockerd
-    args:
-    - --host=tcp://0.0.0.0:2375
-    - --host=unix:///var/run/docker.sock
-
-  # Docker client
-  - name: docker
-    image: docker:24.0.5
-    command: ["sleep"]
-    args: ["9999"]
-"""
-    }
-  }
-
-  steps {
-    container('docker') {
-
-      withCredentials([usernamePassword(
-        credentialsId: 'Dockerhub',
-        usernameVariable: 'DOCKER_USER',
-        passwordVariable: 'DOCKER_PASS'
-      )]) {
-
-        sh """
-          # Wait until Docker daemon becomes ready
-          for i in {1..20}; do
-            docker -H tcp://dind:2375 info && break
-            echo "Waiting for Docker daemon..."
-            sleep 2
-          done
-
-          # Login & Build
-          echo \$DOCKER_PASS | docker -H tcp://dind:2375 login -u \$DOCKER_USER --password-stdin
-          docker -H tcp://dind:2375 build -t ahmedmanwar/cicd-app:latest ${WORKSPACE}
-          docker -H tcp://dind:2375 push ahmedmanwar/cicd-app:latest
+        stage('Build Image & Push') {
+            agent {
+                kubernetes {
+                    yaml """
+        apiVersion: v1
+        kind: Pod
+        spec:
+          containers:
+          - name: docker
+            image: docker:24.0.5
+            command:
+            - cat
+            tty: true
+            volumeMounts:
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
+          volumes:
+          - name: docker-sock
+            hostPath:
+              path: /var/run/docker.sock
         """
-      }
-    }
-  }
-}
-
-    }                 // end of stages
-}                    // end of pipeline
+                }
+            }
+            steps {
+                container('docker') {
+                    withCredentials([usernamePassword(credentialsId: 'Dockerhub', 
+                                                      usernameVariable: 'DOCKER_USER', 
+                                                      passwordVariable: 'DOCKER_PASS')]) {
+                        sh """
+                            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                            docker build -t ahmedmanwar/cicd-app:latest ${WORKSPACE}
+                            docker push ahmedmanwar/cicd-app:latest
+                        """
+                    }
+                }
+            }
+        }
+    } // end of stages
+} // end of pipeline
