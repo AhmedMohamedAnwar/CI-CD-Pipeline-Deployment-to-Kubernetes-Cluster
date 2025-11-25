@@ -70,8 +70,7 @@ spec:
             }
         }
 
-        // Build Docker Image and push to Docker hub
-        stage('Build Image & Push') {
+        stage('Build & Push Image (Kaniko)') {
             agent {
                 kubernetes {
                     yaml """
@@ -79,31 +78,55 @@ spec:
         kind: Pod
         spec:
           containers:
-          - name: docker
-            image: docker:24.0.5
-            command:
-            - cat
-            tty: true
-            volumeMounts:
-            - name: docker-sock
-              mountPath: /var/run/docker.sock
+            - name: kaniko
+              image: gcr.io/kaniko-project/executor:latest
+              command:
+                - /busybox/sh
+                - -c
+                - |
+                  echo "Running Kaniko pod..."
+                  sleep 3600
+              volumeMounts:
+                - name: docker-config
+                  mountPath: /kaniko/.docker/
           volumes:
-          - name: docker-sock
-            hostPath:
-              path: /var/run/docker.sock
+            - name: docker-config
+              emptyDir: {}
         """
                 }
             }
             steps {
-                container('docker') {
-                    withCredentials([usernamePassword(credentialsId: 'Dockerhub', 
-                                                      usernameVariable: 'DOCKER_USER', 
-                                                      passwordVariable: 'DOCKER_PASS')]) {
-                        sh """
-                            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                            docker build -t ahmedmanwar/cicd-app:latest ${WORKSPACE}
-                            docker push ahmedmanwar/cicd-app:latest
-                        """
+                container('kaniko') {
+                    withCredentials([usernamePassword(
+                        credentialsId: 'Dockerhub',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )]) {
+
+                        sh '''
+                            echo ">>> Preparing Docker config for Kaniko"
+
+                            mkdir -p /kaniko/.docker
+
+                            cat <<EOF > /kaniko/.docker/config.json
+        {
+          "auths": {
+            "https://index.docker.io/v1/": {
+              "username": "${DOCKER_USER}",
+              "password": "${DOCKER_PASS}",
+              "auth": "$(echo -n ${DOCKER_USER}:${DOCKER_PASS} | base64)"
+            }
+          }
+        }
+        EOF
+
+                            echo ">>> Running Kaniko build"
+                            /kaniko/executor \
+                                --dockerfile=${WORKSPACE}/Dockerfile \
+                                --context=${WORKSPACE} \
+                                --destination=ahmedmanwar/cicd-app:latest \
+                                --verbosity=info
+                        '''
                     }
                 }
             }
