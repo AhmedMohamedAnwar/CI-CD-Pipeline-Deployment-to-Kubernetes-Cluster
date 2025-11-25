@@ -167,7 +167,6 @@ spec:
                 container('kubectl') {
                     script {
                         sh '''
-                            
                             # Create English deployment manifest
                             cat <<EOF > english-deployment.yaml
 apiVersion: apps/v1
