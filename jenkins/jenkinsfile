@@ -139,94 +139,100 @@ spec:
                                 --verbosity=info
                             
                             echo "All images built and pushed successfully!"
-                                '''
-        stage('Deploy to Kubernetes Cluster') {
-                    agent {
-                        kubernetes {
-                            yaml """
-        apiVersion: v1
-        kind: Pod
-        spec:
-          serviceAccountName: jenkins-service-account
-          containers:
-            - name: kubectl
-              image: alpine/k8s:1.28.3
-              command:
-                - cat
-              tty: true
-        """
-                        }
-                    }
-                    
-                    steps {
-                        container('kubectl') {
-                            script {
-                                sh '''                                    
-                                    # Create English deployment manifest
-                                    cat <<EOF > english-deployment.yaml
-        apiVersion: apps/v1
-        kind: Deployment
-        metadata:
-          name: english-deployment
-          namespace: app-ns 
-          labels:
-            app: english-app
-        spec:
-          replicas: 3
-          selector:
-            matchLabels:
-              app: english-app
-          template:
-            metadata:
-              labels:
-                app: english-app
-            spec:
-              containers:
-              - name: english-app-container
-                image: ahmedmanwar/cicd-app-en:latest
-                ports:
-                - containerPort: 3000
-        EOF
-                                    
-                                    # Create Arabic deployment manifest
-                                    cat <<EOF > arabic-deployment.yaml
-        apiVersion: apps/v1
-        kind: Deployment
-        metadata:
-          name: arabic-deployment
-          namespace: app-ns 
-          labels:
-            app: arabic-app
-        spec:
-          replicas: 3
-          selector:
-            matchLabels:
-              app: arabic-app
-          template:
-            metadata:
-              labels:
-                app: arabic-app
-            spec:
-              containers:
-              - name: arabic-app-container
-                image: ahmedmanwar/cicd-app-ar:latest
-                ports:
-                - containerPort: 3000
-        EOF
-                                    
-                                    echo "Applying English deployment..."
-                                    kubectl apply -f english-deployment.yaml
-                                    
-                                    echo "Applying Arabic deployment..."
-                                    kubectl apply -f arabic-deployment.yaml
-                                    
-                                    echo "Verifying deployments..."
-                                    kubectl get deployments -n app-ns
-                                    kubectl get pods -n app-ns
-                                '''
-                            }
-                        }
+                        '''
                     }
                 }
-            } // end of stages
-        } // end of pipeline
+            }
+        }
+
+        stage('Deploy to Kubernetes Cluster') {
+            agent {
+                kubernetes {
+                    yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  serviceAccountName: jenkins-service-account
+  containers:
+    - name: kubectl
+      image: alpine/k8s:1.28.3
+      command:
+        - cat
+      tty: true
+"""
+                }
+            }
+            
+            steps {
+                container('kubectl') {
+                    script {
+                        sh '''
+                            
+                            # Create English deployment manifest
+                            cat <<EOF > english-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: english-deployment
+  namespace: app-ns 
+  labels:
+    app: english-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: english-app
+  template:
+    metadata:
+      labels:
+        app: english-app
+    spec:
+      containers:
+      - name: english-app-container
+        image: ahmedmanwar/cicd-app-en:latest
+        ports:
+        - containerPort: 3000
+EOF
+                            
+                            # Create Arabic deployment manifest
+                            cat <<EOF > arabic-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: arabic-deployment
+  namespace: app-ns 
+  labels:
+    app: arabic-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: arabic-app
+  template:
+    metadata:
+      labels:
+        app: arabic-app
+    spec:
+      containers:
+      - name: arabic-app-container
+        image: ahmedmanwar/cicd-app-ar:latest
+        ports:
+        - containerPort: 3000
+EOF
+                            
+                            echo "Applying English deployment..."
+                            kubectl apply -f english-deployment.yaml
+                            
+                            echo "Applying Arabic deployment..."
+                            kubectl apply -f arabic-deployment.yaml
+                            
+                            echo "Verifying deployments..."
+                            kubectl get deployments -n app-ns
+                            kubectl get pods -n app-ns
+                        '''
+                    }
+                }
+            }
+        }
+    } // end of stages
+} // end of pipeline
