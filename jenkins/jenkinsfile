@@ -80,12 +80,10 @@ spec:
           containers:
             - name: kaniko
               image: gcr.io/kaniko-project/executor:latest
-              command:
-                - /busybox/sh
-                - -c
-                - |
-                  echo "Running Kaniko pod..."
-                  sleep 3600
+              args:
+                - "--dockerfile=/workspace/Dockerfile"
+                - "--context=/workspace"
+                - "--destination=ahmedmanwar/cicd-app:latest"
               volumeMounts:
                 - name: docker-config
                   mountPath: /kaniko/.docker/
@@ -95,6 +93,7 @@ spec:
         """
                 }
             }
+
             steps {
                 container('kaniko') {
                     withCredentials([usernamePassword(
@@ -104,7 +103,7 @@ spec:
                     )]) {
 
                         sh '''
-                            echo ">>> Preparing Docker config for Kaniko"
+                            echo ">>> Creating Docker config for Kaniko"
 
                             mkdir -p /kaniko/.docker
 
@@ -119,17 +118,11 @@ spec:
           }
         }
         EOF
-
-                            echo ">>> Running Kaniko build"
-                            /kaniko/executor \
-                                --dockerfile=${WORKSPACE}/Dockerfile \
-                                --context=${WORKSPACE} \
-                                --destination=ahmedmanwar/cicd-app:latest \
-                                --verbosity=info
                         '''
                     }
                 }
             }
         }
+
     } // end of stages
 } // end of pipeline
