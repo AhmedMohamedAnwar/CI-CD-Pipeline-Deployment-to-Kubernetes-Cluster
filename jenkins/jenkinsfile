@@ -92,16 +92,12 @@ spec:
 
             steps {
                 container('kaniko') {
-
-                    // Use Jenkins DockerHub credentials
                     withCredentials([usernamePassword(
                         credentialsId: 'Dockerhub',
                         usernameVariable: 'DOCKER_USER',
                         passwordVariable: 'DOCKER_PASS'
                     )]) {
-
-                        sh '''
-                            # Prepare Docker config for Kaniko
+                        sh """
                             mkdir -p /kaniko/.docker
 
                             cat <<EOF > /kaniko/.docker/config.json
@@ -117,17 +113,17 @@ spec:
         EOF
 
                             # Build Arabic image
-                            /kaniko/executor \
-                              --context /workspace/app/arabic \
-                              --dockerfile /workspace/app/arabic/Dockerfile \
-                              --destination=ahmedmanwar/cicd-app-ar:latest
+                            /kaniko/executor --context /workspace/app/arabic \
+                                            --dockerfile /workspace/app/arabic/Dockerfile \
+                                            --destination=ahmedmanwar/cicd-app-ar:latest \
+                                            --verbosity=info
 
                             # Build English image
-                            /kaniko/executor \
-                              --context /workspace/app/english \
-                              --dockerfile /workspace/app/english/Dockerfile \
-                              --destination=ahmedmanwar/cicd-app-en:latest
-                        '''
+                            /kaniko/executor --context /workspace/app/english \
+                                            --dockerfile /workspace/app/english/Dockerfile \
+                                            --destination=ahmedmanwar/cicd-app-en:latest \
+                                            --verbosity=info
+                        """
                     }
                 }
             }
