@@ -69,44 +69,79 @@ spec:
                 echo "Test app"
             }
         }
-
-        // Build Docker Image and push to Docker hub
-        stage('Build Image & Push') {
-            agent {
-                kubernetes {
-                    yaml """
+        stage('Build & Push Images (Kaniko)') {
+                    agent {
+                        kubernetes {
+                            yaml """
         apiVersion: v1
         kind: Pod
         spec:
           containers:
-          - name: docker
-            image: docker:24.0.5
-            command:
-            - cat
-            tty: true
-            volumeMounts:
-            - name: docker-sock
-              mountPath: /var/run/docker.sock
+            - name: kaniko
+              image: gcr.io/kaniko-project/executor:debug
+              command:
+                - sleep
+              args:
+                - "99999"
+              volumeMounts:
+                - name: docker-config
+                  mountPath: /kaniko/.docker/
           volumes:
-          - name: docker-sock
-            hostPath:
-              path: /var/run/docker.sock
+            - name: docker-config
+              emptyDir: {}
         """
-                }
-            }
-            steps {
-                container('docker') {
-                    withCredentials([usernamePassword(credentialsId: 'Dockerhub', 
-                                                      usernameVariable: 'DOCKER_USER', 
-                                                      passwordVariable: 'DOCKER_PASS')]) {
-                        sh """
-                            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                            docker build -t ahmedmanwar/cicd-app:latest ${WORKSPACE}
-                            docker push ahmedmanwar/cicd-app:latest
-                        """
+                        }
+                    }
+        
+                    steps {
+                        container('kaniko') {
+                            withCredentials([usernamePassword(
+                                credentialsId: 'Dockerhub',
+                                usernameVariable: 'DOCKER_USER',
+                                passwordVariable: 'DOCKER_PASS'
+                            )]) {
+                                sh '''
+                                    set -e
+                                    
+                                    echo "Creating Docker config..."
+                                    mkdir -p /kaniko/.docker
+                                    
+                                    # Create config.json with proper authentication
+                                    echo -n "${DOCKER_USER}:${DOCKER_PASS}" | base64 -w 0 > /kaniko/.docker/auth.txt
+                                    
+                                    echo '{' > /kaniko/.docker/config.json
+                                    echo '  "auths": {' >> /kaniko/.docker/config.json
+                                    echo '    "https://index.docker.io/v1/": {' >> /kaniko/.docker/config.json
+                                    echo -n '      "auth": "' >> /kaniko/.docker/config.json
+                                    cat /kaniko/.docker/auth.txt >> /kaniko/.docker/config.json
+                                    echo '"' >> /kaniko/.docker/config.json
+                                    echo '    }' >> /kaniko/.docker/config.json
+                                    echo '  }' >> /kaniko/.docker/config.json
+                                    echo '}' >> /kaniko/.docker/config.json
+                                    
+                                    rm /kaniko/.docker/auth.txt
+                                    
+                                    echo "Docker config created successfully"
+                                    
+                                    echo "Building Arabic image..."
+                                    /kaniko/executor \
+                                        --context ${WORKSPACE}/app/arabic \
+                                        --dockerfile ${WORKSPACE}/app/arabic/Dockerfile \
+                                        --destination=ahmedmanwar/cicd-app-ar:latest \
+                                        --verbosity=info
+                                    
+                                    echo "Building English image..."
+                                    /kaniko/executor \
+                                        --context ${WORKSPACE}/app/english \
+                                        --dockerfile ${WORKSPACE}/app/english/Dockerfile \
+                                        --destination=ahmedmanwar/cicd-app-en:latest \
+                                        --verbosity=info
+                                    
+                                    echo "All images built and pushed successfully!"
+                                '''
+                            }
+                        }
                     }
                 }
-            }
-        }
     } // end of stages
 } // end of pipeline
