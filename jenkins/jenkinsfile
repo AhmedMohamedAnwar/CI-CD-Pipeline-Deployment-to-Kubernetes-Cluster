@@ -71,45 +71,64 @@ spec:
         }
 
         // Build Docker Image and push to Docker hub
-        stage('Build Image & Push') {
-          agent {
-            kubernetes {
-              yaml """
-        apiVersion: v1
-        kind: Pod
-        spec:
-          containers:
-          - name: dind
-            image: docker:24.0.5-dind
-            securityContext:
-              privileged: true
-            args: ["--mtu=1460"]
+stage('Build Image & Push') {
+  agent {
+    kubernetes {
+      yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
 
-          - name: docker
-            image: docker:24.0.5
-            command: ["sleep"]
-            args: ["9999"]
+  # Docker Daemon (DIND)
+  - name: dind
+    image: docker:24.0.5-dind
+    securityContext:
+      privileged: true
+    env:
+    - name: DOCKER_TLS_CERTDIR
+      value: ""        # Disable TLS
+    command:
+    - dockerd
+    args:
+    - --host=tcp://0.0.0.0:2375
+    - --host=unix:///var/run/docker.sock
+
+  # Docker client
+  - name: docker
+    image: docker:24.0.5
+    command: ["sleep"]
+    args: ["9999"]
+"""
+    }
+  }
+
+  steps {
+    container('docker') {
+
+      withCredentials([usernamePassword(
+        credentialsId: 'Dockerhub',
+        usernameVariable: 'DOCKER_USER',
+        passwordVariable: 'DOCKER_PASS'
+      )]) {
+
+        sh """
+          # Wait until Docker daemon becomes ready
+          for i in {1..20}; do
+            docker -H tcp://dind:2375 info && break
+            echo "Waiting for Docker daemon..."
+            sleep 2
+          done
+
+          # Login & Build
+          echo \$DOCKER_PASS | docker -H tcp://dind:2375 login -u \$DOCKER_USER --password-stdin
+          docker -H tcp://dind:2375 build -t ahmedmanwar/cicd-app:latest ${WORKSPACE}
+          docker -H tcp://dind:2375 push ahmedmanwar/cicd-app:latest
         """
-            }
-          }
+      }
+    }
+  }
+}
 
-          steps {
-            container('docker') {
-              withCredentials([usernamePassword(
-                credentialsId: 'Dockerhub',
-                usernameVariable: 'DOCKER_USER',
-                passwordVariable: 'DOCKER_PASS'
-              )]) {
-
-                sh """
-                  docker -H tcp://localhost:2375 ps
-                  echo \$DOCKER_PASS | docker -H tcp://localhost:2375 login -u \$DOCKER_USER --password-stdin
-                  docker -H tcp://localhost:2375 build -t ahmedmanwar/cicd-app:latest ${WORKSPACE}
-                  docker -H tcp://localhost:2375 push ahmedmanwar/cicd-app:latest
-                """
-              }
-            }
-          }
-        }
     }                 // end of stages
 }                    // end of pipeline
