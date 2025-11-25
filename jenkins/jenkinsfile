@@ -70,7 +70,7 @@ spec:
             }
         }
 
-        stage('Build & Push Image (Kaniko)') {
+        stage('Build & Push Images (Kaniko)') {
             agent {
                 kubernetes {
                     yaml """
@@ -80,10 +80,6 @@ spec:
           containers:
             - name: kaniko
               image: gcr.io/kaniko-project/executor:latest
-              args:
-                - "--dockerfile=/workspace/Dockerfile"
-                - "--context=/workspace"
-                - "--destination=ahmedmanwar/cicd-app:latest"
               volumeMounts:
                 - name: docker-config
                   mountPath: /kaniko/.docker/
@@ -96,6 +92,8 @@ spec:
 
             steps {
                 container('kaniko') {
+
+                    // Use Jenkins DockerHub credentials
                     withCredentials([usernamePassword(
                         credentialsId: 'Dockerhub',
                         usernameVariable: 'DOCKER_USER',
@@ -103,8 +101,7 @@ spec:
                     )]) {
 
                         sh '''
-                            echo ">>> Creating Docker config for Kaniko"
-
+                            # Prepare Docker config for Kaniko
                             mkdir -p /kaniko/.docker
 
                             cat <<EOF > /kaniko/.docker/config.json
@@ -118,6 +115,18 @@ spec:
           }
         }
         EOF
+
+                            # Build Arabic image
+                            /kaniko/executor \
+                              --context /workspace/app/arabic \
+                              --dockerfile /workspace/app/arabic/Dockerfile \
+                              --destination=ahmedmanwar/cicd-app-ar:latest
+
+                            # Build English image
+                            /kaniko/executor \
+                              --context /workspace/app/english \
+                              --dockerfile /workspace/app/english/Dockerfile \
+                              --destination=ahmedmanwar/cicd-app-en:latest
                         '''
                     }
                 }
