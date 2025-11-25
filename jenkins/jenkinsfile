@@ -69,7 +69,6 @@ spec:
                 echo "Test app"
             }
         }
-
         stage('Build & Push Images (Kaniko)') {
                     agent {
                         kubernetes {
@@ -108,19 +107,19 @@ spec:
                                     mkdir -p /kaniko/.docker
                                     
                                     # Create config.json with proper authentication
-                                    echo -n "${DOCKER_USER}:${DOCKER_PASS}" | base64 -w 0 > /tmp/auth.txt
+                                    echo -n "${DOCKER_USER}:${DOCKER_PASS}" | base64 -w 0 > /kaniko/.docker/auth.txt
                                     
                                     echo '{' > /kaniko/.docker/config.json
                                     echo '  "auths": {' >> /kaniko/.docker/config.json
                                     echo '    "https://index.docker.io/v1/": {' >> /kaniko/.docker/config.json
                                     echo -n '      "auth": "' >> /kaniko/.docker/config.json
-                                    cat /tmp/auth.txt >> /kaniko/.docker/config.json
+                                    cat /kaniko/.docker/auth.txt >> /kaniko/.docker/config.json
                                     echo '"' >> /kaniko/.docker/config.json
                                     echo '    }' >> /kaniko/.docker/config.json
                                     echo '  }' >> /kaniko/.docker/config.json
                                     echo '}' >> /kaniko/.docker/config.json
                                     
-                                    rm /tmp/auth.txt
+                                    rm /kaniko/.docker/auth.txt
                                     
                                     echo "Docker config created successfully"
                                     
