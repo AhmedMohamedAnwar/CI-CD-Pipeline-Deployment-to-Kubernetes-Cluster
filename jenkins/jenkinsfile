@@ -107,20 +107,22 @@ spec:
                                     echo "Creating Docker config..."
                                     mkdir -p /kaniko/.docker
                                     
-                                    AUTH=$(echo -n ${DOCKER_USER}:${DOCKER_PASS} | base64 -w 0)
+                                    # Create config.json with proper authentication
+                                    echo -n "${DOCKER_USER}:${DOCKER_PASS}" | base64 -w 0 > /tmp/auth.txt
                                     
-                                    cat > /kaniko/.docker/config.json <<EOF
-        {
-          "auths": {
-            "https://index.docker.io/v1/": {
-              "auth": "${AUTH}"
-            }
-          }
-        }
-        EOF
+                                    echo '{' > /kaniko/.docker/config.json
+                                    echo '  "auths": {' >> /kaniko/.docker/config.json
+                                    echo '    "https://index.docker.io/v1/": {' >> /kaniko/.docker/config.json
+                                    echo -n '      "auth": "' >> /kaniko/.docker/config.json
+                                    cat /tmp/auth.txt >> /kaniko/.docker/config.json
+                                    echo '"' >> /kaniko/.docker/config.json
+                                    echo '    }' >> /kaniko/.docker/config.json
+                                    echo '  }' >> /kaniko/.docker/config.json
+                                    echo '}' >> /kaniko/.docker/config.json
+                                    
+                                    rm /tmp/auth.txt
                                     
                                     echo "Docker config created successfully"
-                                    cat /kaniko/.docker/config.json
                                     
                                     echo "Building Arabic image..."
                                     /kaniko/executor \
