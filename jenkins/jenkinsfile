@@ -72,47 +72,44 @@ spec:
 
         // Build Docker Image and push to Docker hub
         stage('Build Image & Push') {
-            agent {
-                kubernetes {
-                    yaml """
+          agent {
+            kubernetes {
+              yaml """
         apiVersion: v1
         kind: Pod
         spec:
           containers:
+          - name: dind
+            image: docker:24.0.5-dind
+            securityContext:
+              privileged: true
+            args: ["--mtu=1460"]
+
           - name: docker
             image: docker:24.0.5
-            command:
-            - cat
-            tty: true
-            securityContext:
-              runAsUser: 0  # Run as root
-            volumeMounts:
-            - name: docker-sock
-              mountPath: /var/run/docker.sock
-          volumes:
-          - name: docker-sock
-            hostPath:
-              path: /var/run/docker.sock
-              type: Socket
+            command: ["sleep"]
+            args: ["9999"]
         """
-                }
             }
-            steps {
-                container('docker') {
-                    withCredentials([usernamePassword(credentialsId: 'Dockerhub', 
-                                                      usernameVariable: 'DOCKER_USER', 
-                                                      passwordVariable: 'DOCKER_PASS')]) {
-                        sh """
-                            # Verify Docker socket is accessible
-                            ls -la /var/run/docker.sock
-                            
-                            echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
-                            docker build -t ahmedmanwar/cicd-app:latest ${WORKSPACE}
-                            docker push ahmedmanwar/cicd-app:latest
-                        """
-                    }
-                }
+          }
+
+          steps {
+            container('docker') {
+              withCredentials([usernamePassword(
+                credentialsId: 'Dockerhub',
+                usernameVariable: 'DOCKER_USER',
+                passwordVariable: 'DOCKER_PASS'
+              )]) {
+
+                sh """
+                  docker -H tcp://localhost:2375 ps
+                  echo \$DOCKER_PASS | docker -H tcp://localhost:2375 login -u \$DOCKER_USER --password-stdin
+                  docker -H tcp://localhost:2375 build -t ahmedmanwar/cicd-app:latest ${WORKSPACE}
+                  docker -H tcp://localhost:2375 push ahmedmanwar/cicd-app:latest
+                """
+              }
             }
+          }
         }
     }                 // end of stages
 }                    // end of pipeline
