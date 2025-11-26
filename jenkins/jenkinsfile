@@ -189,6 +189,7 @@ spec:
       containers:
       - name: english-app-container
         image: ahmedmanwar/cicd-app-en:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 3000
 EOF
@@ -215,6 +216,7 @@ spec:
       containers:
       - name: arabic-app-container
         image: ahmedmanwar/cicd-app-ar:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 3000
 EOF
