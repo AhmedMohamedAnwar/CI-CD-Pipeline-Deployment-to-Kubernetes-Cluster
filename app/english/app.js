@@ -68,7 +68,7 @@ app.get('/api/status', (req, res) => {
 app.use((req, res) => {
   res.status(404).json({
     error: 'Not Found',
-    message: 'The requested endpoint does not exist',
+    message: 'welcome to unknown first change',
     path: req.path
   });
 });
