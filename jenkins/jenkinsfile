@@ -63,83 +63,77 @@ spec:
             }
         }
 
-        // Testing APP   
-        stage('Test app') {
-            steps {
-                echo "Test app"
-            }
-        }
-
         stage('Build & Push Images (Kaniko)') {
             agent {
                 kubernetes {
                     yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-    - name: kaniko
-      image: gcr.io/kaniko-project/executor:debug
-      command:
-        - sleep
-      args:
-        - "99999"
-      volumeMounts:
-        - name: docker-config
-          mountPath: /kaniko/.docker/
-  volumes:
-    - name: docker-config
-      emptyDir: {}
-"""
+        apiVersion: v1
+        kind: Pod
+        spec:
+          containers:
+            - name: kaniko
+              image: gcr.io/kaniko-project/executor:debug
+              command:
+                - sleep
+              args:
+                - "99999"
+              volumeMounts:
+                - name: docker-config
+                  mountPath: /kaniko/.docker/
+          volumes:
+            - name: docker-config
+              emptyDir: {}
+        """
                 }
             }
 
             steps {
                 container('kaniko') {
-                    withCredentials([usernamePassword(
-                        credentialsId: 'Dockerhub',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
-                    )]) {
-                        sh '''
-                            set -e
-                            
-                            echo "Creating Docker config..."
-                            mkdir -p /kaniko/.docker
-                            
-                            # Create config.json with proper authentication
-                            echo -n "${DOCKER_USER}:${DOCKER_PASS}" | base64 -w 0 > /kaniko/.docker/auth.txt
-                            
-                            echo '{' > /kaniko/.docker/config.json
-                            echo '  "auths": {' >> /kaniko/.docker/config.json
-                            echo '    "https://index.docker.io/v1/": {' >> /kaniko/.docker/config.json
-                            echo -n '      "auth": "' >> /kaniko/.docker/config.json
-                            cat /kaniko/.docker/auth.txt >> /kaniko/.docker/config.json
-                            echo '"' >> /kaniko/.docker/config.json
-                            echo '    }' >> /kaniko/.docker/config.json
-                            echo '  }' >> /kaniko/.docker/config.json
-                            echo '}' >> /kaniko/.docker/config.json
-                            
-                            rm /kaniko/.docker/auth.txt
-                            
-                            echo "Docker config created successfully"
-                            
-                            echo "Building Arabic image..."
-                            /kaniko/executor \
-                                --context ${WORKSPACE}/app/arabic \
-                                --dockerfile ${WORKSPACE}/app/arabic/Dockerfile \
-                                --destination=ahmedmanwar/cicd-app-ar:latest \
-                                --verbosity=info
-                            
-                            echo "Building English image..."
-                            /kaniko/executor \
-                                --context ${WORKSPACE}/app/english \
-                                --dockerfile ${WORKSPACE}/app/english/Dockerfile \
-                                --destination=ahmedmanwar/cicd-app-en:latest \
-                                --verbosity=info
-                            
-                            echo "All images built and pushed successfully!"
-                        '''
+                    script {
+                        // Get unique tag from git commit
+                        def gitCommit = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+                        env.IMAGE_TAG = gitCommit
+                        
+                        withCredentials([usernamePassword(
+                            credentialsId: 'Dockerhub',
+                            usernameVariable: 'DOCKER_USER',
+                            passwordVariable: 'DOCKER_PASS'
+                        )]) {
+                            sh """
+                                set -e
+                                
+                                echo "Creating Docker config..."
+                                mkdir -p /kaniko/.docker
+                                
+                                cat > /kaniko/.docker/config.json <<EOF
+        {
+          "auths": {
+            "https://index.docker.io/v1/": {
+              "auth": "\$(echo -n \${DOCKER_USER}:\${DOCKER_PASS} | base64 | tr -d '\\n')"
+            }
+          }
+        }
+        EOF
+                                
+                                echo "Building images with tag: ${env.IMAGE_TAG}"
+                                
+                                /kaniko/executor \
+                                    --context \${WORKSPACE}/app/arabic \
+                                    --dockerfile \${WORKSPACE}/app/arabic/Dockerfile \
+                                    --destination=ahmedmanwar/cicd-app-ar:${env.IMAGE_TAG} \
+                                    --destination=ahmedmanwar/cicd-app-ar:latest \
+                                    --verbosity=info
+                                
+                                /kaniko/executor \
+                                    --context \${WORKSPACE}/app/english \
+                                    --dockerfile \${WORKSPACE}/app/english/Dockerfile \
+                                    --destination=ahmedmanwar/cicd-app-en:${env.IMAGE_TAG} \
+                                    --destination=ahmedmanwar/cicd-app-en:latest \
+                                    --verbosity=info
+                                
+                                echo "Built and pushed images with tag: ${env.IMAGE_TAG}"
+                            """
+                        }
                     }
                 }
             }
@@ -149,88 +143,86 @@ spec:
             agent {
                 kubernetes {
                     yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  serviceAccountName: jenkins-service-account
-  containers:
-    - name: kubectl
-      image: alpine/k8s:1.28.3
-      command:
-        - cat
-      tty: true
-"""
+        apiVersion: v1
+        kind: Pod
+        spec:
+          serviceAccountName: jenkins-service-account
+          containers:
+            - name: kubectl
+              image: alpine/k8s:1.28.3
+              command:
+                - cat
+              tty: true
+        """
                 }
             }
             
             steps {
                 container('kubectl') {
                     script {
-                        sh '''
-                            # Create English deployment manifest
+                        sh """
+                            echo "Deploying with image tag: ${env.IMAGE_TAG}"
+                            
                             cat <<EOF > english-deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: english-deployment
-  namespace: app-ns 
-  labels:
-    app: english-app
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: english-app
-  template:
-    metadata:
-      labels:
-        app: english-app
-    spec:
-      containers:
-      - name: english-app-container
-        image: ahmedmanwar/cicd-app-en:latest
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 3000
-EOF
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: english-deployment
+          namespace: app-ns 
+          labels:
+            app: english-app
+        spec:
+          replicas: 3
+          selector:
+            matchLabels:
+              app: english-app
+          template:
+            metadata:
+              labels:
+                app: english-app
+            spec:
+              containers:
+              - name: english-app-container
+                image: ahmedmanwar/cicd-app-en:${env.IMAGE_TAG}
+                ports:
+                - containerPort: 3000
+        EOF
                             
-                            # Create Arabic deployment manifest
                             cat <<EOF > arabic-deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: arabic-deployment
-  namespace: app-ns 
-  labels:
-    app: arabic-app
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: arabic-app
-  template:
-    metadata:
-      labels:
-        app: arabic-app
-    spec:
-      containers:
-      - name: arabic-app-container
-        image: ahmedmanwar/cicd-app-ar:latest
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 3000
-EOF
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: arabic-deployment
+          namespace: app-ns 
+          labels:
+            app: arabic-app
+        spec:
+          replicas: 3
+          selector:
+            matchLabels:
+              app: arabic-app
+          template:
+            metadata:
+              labels:
+                app: arabic-app
+            spec:
+              containers:
+              - name: arabic-app-container
+                image: ahmedmanwar/cicd-app-ar:${env.IMAGE_TAG}
+                ports:
+                - containerPort: 3000
+        EOF
                             
-                            echo "Applying English deployment..."
                             kubectl apply -f english-deployment.yaml
-                            
-                            echo "Applying Arabic deployment..."
                             kubectl apply -f arabic-deployment.yaml
                             
-                            echo "Verifying deployments..."
+                            # Wait for rollout (automatic because image tag changed)
+                            kubectl rollout status deployment english-deployment -n app-ns
+                            kubectl rollout status deployment arabic-deployment -n app-ns
+                            
                             kubectl get deployments -n app-ns
                             kubectl get pods -n app-ns
-                        '''
+                        """
                     }
                 }
             }
