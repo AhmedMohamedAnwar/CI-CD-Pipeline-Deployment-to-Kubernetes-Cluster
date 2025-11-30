@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 
 // نقطة فحص الصحة - تستخدم من قبل موازنات الأحمال والمنسقين
-app.get('/health', (req, res) => {
+app.get('/ar/health', (req, res) => {
   res.status(200).json({
     status: 'سليم',
     timestamp: new Date().toISOString(),
@@ -21,7 +21,7 @@ app.get('/health', (req, res) => {
 });
 
 // نقطة النهاية الرئيسية - معلومات أساسية عن الواجهة البرمجية
-app.get('/', (req, res) => {
+app.get('/ar/', (req, res) => {
   res.status(200).json({
     message: 'مرحباً بك في تطبيق اختبار CI/CD',
     version: '1.0.0',
@@ -35,7 +35,7 @@ app.get('/', (req, res) => {
 });
 
 // نقطة البيانات - ترجع بيانات تجريبية للاختبار
-app.get('/api/data', (req, res) => {
+app.get('/ar/api/data', (req, res) => {
   res.status(200).json({
     success: true,
     data: {
@@ -51,7 +51,7 @@ app.get('/api/data', (req, res) => {
 });
 
 // نقطة الحالة - ترجع حالة التطبيق
-app.get('/api/status', (req, res) => {
+app.get('/ar/api/status', (req, res) => {
   res.status(200).json({
     status: 'يعمل',
     environment: process.env.NODE_ENV || 'تطوير',

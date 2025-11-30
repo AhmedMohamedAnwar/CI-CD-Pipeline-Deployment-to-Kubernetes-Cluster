@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 
 // Health check endpoint - used by load balancers and orchestrators
-app.get('/health', (req, res) => {
+app.get('/en/health', (req, res) => {
   res.status(200).json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
@@ -21,7 +21,7 @@ app.get('/health', (req, res) => {
 });
 
 // Root endpoint - basic information about the API
-app.get('/', (req, res) => {
+app.get('/en/', (req, res) => {
   res.status(200).json({
     message: 'Welcome to the CI/CD Test Application',
     version: '1.0.0',
@@ -35,7 +35,7 @@ app.get('/', (req, res) => {
 });
 
 // Data endpoint - returns sample data for testing
-app.get('/api/data', (req, res) => {
+app.get('/en/api/data', (req, res) => {
   res.status(200).json({
     success: true,
     data: {
@@ -51,7 +51,7 @@ app.get('/api/data', (req, res) => {
 });
 
 // Status endpoint - returns application status
-app.get('/api/status', (req, res) => {
+app.get('/en/api/status', (req, res) => {
   res.status(200).json({
     status: 'operational',
     environment: process.env.NODE_ENV || 'development',
