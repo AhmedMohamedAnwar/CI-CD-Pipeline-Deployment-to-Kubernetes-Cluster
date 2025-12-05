@@ -16,8 +16,7 @@ Once the pipeline is triggered, Jenkins performs the following:
 3. If the branch is `main`, Jenkins proceeds with **applying the Kubernetes deployment** to update production  
 4. For other branches, validations and scan results are produced without applying production changes
 
-> In the `main` branch, the pipeline runs both the **build** and **deploy** stages.  
-> Whenever changes occur in the application, the pipeline triggers the **build** and **deploy** stages automatically.
+In the `main` branch, whenever changes occur in the application, the pipeline triggers the **build** and **deploy** stages automatically.
 
 ---
 
