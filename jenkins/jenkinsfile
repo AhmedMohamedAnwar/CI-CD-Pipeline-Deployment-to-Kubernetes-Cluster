@@ -63,14 +63,10 @@ spec:
             }
         }
 
-        // Testing APP   
-        stage('Test app') {
-            steps {
-                echo "Test app"
-            }
-        }
-
         stage('Build & Push Images (Kaniko)') {
+            when {
+                branch 'main'
+            }        
             agent {
                 kubernetes {
                     yaml """
@@ -146,6 +142,9 @@ spec:
         }
 
         stage('Deploy to Kubernetes Cluster') {
+            when {
+                branch 'main'
+            }        
             agent {
                 kubernetes {
                     yaml """
