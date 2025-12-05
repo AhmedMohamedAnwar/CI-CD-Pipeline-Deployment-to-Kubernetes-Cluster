@@ -17,6 +17,7 @@ Once the pipeline is triggered, Jenkins performs the following:
 4. For other branches, validations and scan results are produced without applying production changes
 
 In the `main` branch, whenever changes occur in the application, the pipeline triggers the **build** and **deploy** stages automatically.
+It will not build or deploy if there is changes in kubernetes or Readme file but it exists for trivy scann
 
 ---
 
