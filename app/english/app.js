@@ -24,7 +24,7 @@ app.get('/en/health', (req, res) => {
 app.get('/en/', (req, res) => {
   res.status(200).json({
     message: 'Welcome to the CI/CD Test Application',
-    version: '1.0.0',
+    version: '1.0.1',
     language: 'English',
     endpoints: {
       health: '/health',
