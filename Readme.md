@@ -22,7 +22,7 @@ It will not build or deploy if there is changes in kubernetes or Readme file but
 ---
 ## Architecture
 
-![Architecture Diagram](media/Arche)
+![Architecture Diagram](media/Arche.gif)
 
 ---
 
