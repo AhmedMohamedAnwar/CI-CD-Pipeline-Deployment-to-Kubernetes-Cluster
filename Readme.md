@@ -28,9 +28,9 @@ It will not build or deploy if there is changes in kubernetes or Readme file but
 
 ## Output
 
-![Output 1](media/output-1.png)
+![Output 1](media/arabic.png)
 
-![Output 2](media/output-2.png)
+![Output 2](media/english.png)
 
-![Output 3](media/output-3.png)
+![Output 3](media/pipeline.png)
 
