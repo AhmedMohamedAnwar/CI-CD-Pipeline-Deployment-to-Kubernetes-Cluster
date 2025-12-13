@@ -20,15 +20,17 @@ In the `main` branch, whenever changes occur in the application, the pipeline tr
 It will not build or deploy if there is changes in kubernetes or Readme file but it exists for trivy scann
 
 ---
-
 ## Architecture
-<!-- ![Architecture Diagram](./architecture.png) -->
+
+![Architecture Diagram](media/Arche)
 
 ---
 
 ## Output
-<!-- The pipeline outputs:
-- Trivy vulnerability scan report  
-- Build logs and validation results  
-- Deployment status (if triggered from main)  
-- Updated Kubernetes application running in the cluster -->
+
+![Output 1](media/output-1.png)
+
+![Output 2](media/output-2.png)
+
+![Output 3](media/output-3.png)
+
