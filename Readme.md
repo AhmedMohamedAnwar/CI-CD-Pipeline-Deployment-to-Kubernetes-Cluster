@@ -30,7 +30,6 @@ It will not build or deploy if there is changes in kubernetes or Readme file but
 
 ![Output 1](media/arabic.png)
 
+---
+
 ![Output 2](media/english.png)
-
-![Output 3](media/pipeline.png)
-
